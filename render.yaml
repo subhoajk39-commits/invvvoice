@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: invoice-project
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn Invoice_project.wsgi:application
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: Invoice_project.settings
+      - key: PYTHON_VERSION
+        value: 3.10
+      - key: DEBUG
+        value: false
+      - key: SECRET_KEY
+        value: oi8f=^9%x^&q(m)bjv2b!e0+4__mch=+0@3#nhi41wth8s94e0
+      - key: DATABASE_URL
+        value: postgresql://invoice_db_suf0_user:Pq40MqZygea0CrpPl1YUL0KVb26gFR5U@dpg-d14o3d7fte5s73eoe1h0-a/invoice_db_suf0
+      - key: ALLOWED_HOSTS
+        value: invoice-project-1ncx.onrender.com,localhost,127.0.0.1
+
