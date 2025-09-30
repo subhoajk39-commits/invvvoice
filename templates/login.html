@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Login - Invoice{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+    
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+    
+    .login-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        max-width: 900px;
+        width: 100%;
+        margin: 0 auto;
+    }
+    
+    .login-left {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+        color: white;
+        padding: 3rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        min-height: 500px;
+    }
+    
+    .login-left::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        animation: float 8s ease-in-out infinite;
+    }
+    
+    .login-left::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -30%;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite reverse;
+    }
+    
+    .login-right {
+        padding: 3rem;
+        min-height: 500px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .brand-logo {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.8) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .login-form .form-floating {
+        margin-bottom: 1.5rem;
+    }
+    
+    .login-form .form-control {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.9);
+    }
+    
+    .login-form .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        background: white;
+    }
+    
+    .login-form .form-label {
+        color: #64748b;
+        font-weight: 500;
+    }
+    
+    .login-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 12px;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: white;
+        width: 100%;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .login-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s ease;
+    }
+    
+    .login-btn:hover::before {
+        left: 100%;
+    }
+    
+    .login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+    
+    .feature-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        opacity: 0;
+        animation: slideInLeft 0.6s ease forwards;
+    }
+    
+    .feature-item:nth-child(1) { animation-delay: 0.2s; }
+    .feature-item:nth-child(2) { animation-delay: 0.4s; }
+    .feature-item:nth-child(3) { animation-delay: 0.6s; }
+    .feature-item:nth-child(4) { animation-delay: 0.8s; }
+    
+    .feature-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.2rem;
+    }
+    
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(180deg); }
+    }
+    
+    .welcome-text {
+        opacity: 0;
+        animation: fadeInUp 0.8s ease forwards;
+        animation-delay: 0.2s;
+    }
+    
+    .login-form {
+        opacity: 0;
+        animation: fadeInUp 0.8s ease forwards;
+        animation-delay: 0.4s;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .contact-link {
+        color: #667eea !important;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .contact-link:hover {
+        color: #764ba2 !important;
+        transform: translateY(-1px);
+    }
+    
+    @media (max-width: 991.98px) {
+        .login-card {
+            max-width: 500px;
+        }
+        
+        .login-left {
+            display: none;
+        }
+        
+        .login-right {
+            padding: 2rem;
+            min-height: auto;
+        }
+        
+        .brand-logo {
+            font-size: 2rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .login-container {
+            padding: 1rem;
+        }
+        
+        .login-right {
+            padding: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-10 col-lg-8 col-xl-6">
+                <div class="login-card">
+                    <div class="row g-0">
+                        <!-- Left Side - Branding -->
+                        <div class="col-lg-6 d-none d-lg-block">
+                            <div class="login-left">
+                                <div class="text-center mb-4">
+                                    <div class="brand-logo">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                    <h2 class="fw-bold mb-3">Invoice</h2>
+                                    <p class="opacity-90 mb-4">
+                                        Professional invoice management system designed for modern businesses
+                                    </p>
+                                </div>
+                                
+                                <div class="features">
+                                    <div class="feature-item">
+                                        <div class="feature-icon">
+                                            <i class="fas fa-rocket"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1">Fast & Efficient</h6>
+                                            <small class="opacity-80">Streamlined workflow management</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <div class="feature-icon">
+                                            <i class="fas fa-shield-alt"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1">Secure & Reliable</h6>
+                                            <small class="opacity-80">Enterprise-grade security</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <div class="feature-icon">
+                                            <i class="fas fa-chart-bar"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1">Advanced Analytics</h6>
+                                            <small class="opacity-80">Detailed reports and insights</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <div class="feature-icon">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1">Team Collaboration</h6>
+                                            <small class="opacity-80">Work together seamlessly</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Side - Login Form -->
+                        <div class="col-lg-6 col-12">
+                            <div class="login-right">
+                                <div class="welcome-text text-center mb-4">
+                                    <h3 class="fw-bold gradient-text mb-2">Welcome Back!</h3>
+                                    <p class="text-muted">Please sign in to your account</p>
+                                </div>
+                                
+                                <form method="post" class="login-form">
+                                    {% csrf_token %}
+                                    
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="id_username" name="username" 
+                                               placeholder="Enter your username" required>
+                                        <label for="id_username">
+                                            <i class="fas fa-user me-2"></i>Username
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="form-floating">
+                                        <input type="password" class="form-control" id="id_password" name="password" 
+                                               placeholder="Enter your password" required>
+                                        <label for="id_password">
+                                            <i class="fas fa-lock me-2"></i>Password
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mb-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="remember_me">
+                                            <label class="form-check-label text-muted" for="remember_me">
+                                                Remember me
+                                            </label>
+                                        </div>
+                                        <a href="https://github.com/aroyslipk" target="_blank" class="contact-link">
+                                            <i class="fas fa-question-circle"></i>Need help?
+                                        </a>
+                                    </div>
+                                    
+                                    <button type="submit" class="login-btn">
+                                        <i class="fas fa-sign-in-alt me-2"></i>
+                                        Sign In
+                                    </button>
+                                </form>
+                                
+                                <div class="text-center mt-4">
+                                    <p class="text-muted mb-3">
+                                        Don't have an account?
+                                    </p>
+                                    <a href="https://github.com/aroyslipk" target="_blank" class="contact-link">
+                                        <i class="fas fa-envelope"></i>
+                                        Contact your administrator
+                                    </a>
+                                </div>
+                                
+                                <!-- Mobile branding -->
+                                <div class="d-lg-none text-center mt-4 pt-4 border-top">
+                                    <div class="gradient-text fw-bold fs-4 mb-2">
+                                        <i class="fas fa-chart-line me-2"></i>Invoice
+                                    </div>
+                                    <p class="text-muted small">Professional Invoice Management</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add form validation feedback
+    const form = document.querySelector('.login-form');
+    if (!form) return;
+    const inputs = form.querySelectorAll('.form-control');
+    
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            if (this.value.trim() === '') {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+        
+        input.addEventListener('input', function() {
+            if (this.classList.contains('is-invalid') && this.value.trim() !== '') {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+    });
+    
+    // Form submission with loading state
+    form.addEventListener('submit', function(e) {
+        const submitBtn = this.querySelector('.login-btn');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Signing In...';
+            submitBtn.disabled = true;
+        }
+    });
+    
+    // Add particle effect (optional)
+    createParticles();
+});
+
+function createParticles() {
+    const particleContainer = document.createElement('div');
+    particleContainer.style.position = 'fixed';
+    particleContainer.style.top = '0';
+    particleContainer.style.left = '0';
+    particleContainer.style.width = '100%';
+    particleContainer.style.height = '100%';
+    particleContainer.style.pointerEvents = 'none';
+    particleContainer.style.zIndex = '1';
+    document.body.appendChild(particleContainer);
+    
+    for (let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.style.position = 'absolute';
+        particle.style.width = '2px';
+        particle.style.height = '2px';
+        particle.style.background = 'rgba(255, 255, 255, 0.5)';
+        particle.style.borderRadius = '50%';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animation = `float ${3 + Math.random() * 4}s ease-in-out infinite`;
+        particle.style.animationDelay = Math.random() * 2 + 's';
+        particleContainer.appendChild(particle);
+    }
+}
+</script>
+{% endblock %}

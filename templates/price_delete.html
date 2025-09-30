@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Delete Price{% endblock %}
+{% block content %}
+<h2>❌ Delete Price</h2>
+<p>Are you sure you want to delete "{{ price.Folder Name }}"?</p>
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">Yes, Delete</button>
+</form>
+<a href="{% url 'price_manage' %}">Cancel</a>
+{% endblock %}

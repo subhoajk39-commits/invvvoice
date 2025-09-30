@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Invoice Reports</h2>
+    <div class="card">
+        <div class="card-body">
+            <form method="get" action="{% url 'invoice_reports' %}" class="form-inline">
+                <div class="form-group mr-2">
+                    <label for="project" class="mr-2">Project</label>
+                    <select name="project" id="project" class="form-control">
+                        <option value="">All Projects</option>
+                        {% for p in all_projects %}
+                            <option value="{{ p.id }}" {% if p.id|stringformat:"s" == request.GET.project %}selected{% endif %}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group mr-2">
+                    <label for="month" class="mr-2">Month</label>
+                    <input type="month" name="month" id="month" class="form-control" value="{{ request.GET.month }}">
+                </div>
+                <button type="submit" class="btn btn-primary">Search</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">Generated Reports</h5>
+            <form method="post" id="bulk-action-form">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <button type="submit" name="bulk_action" value="download" class="btn btn-success">Download Selected</button>
+                    <button type="submit" name="bulk_action" value="delete" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete the selected reports?');">Delete Selected</button>
+                </div>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="select-all"></th>
+                            <th>Project</th>
+                            <th>Month</th>
+                            <th>Date Range</th>
+                            <th>Generated On</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in invoices %}
+                        <tr>
+                            <td><input type="checkbox" name="invoice_ids" value="{{ invoice.id }}"></td>
+                            <td>{{ invoice.project_name_snapshot }}</td>
+                            <td>{{ invoice.generated_at|date:"F Y" }}</td>
+                            <td>
+                                {% if invoice.start_date and invoice.end_date %}
+                                    {{ invoice.start_date|date:"d M Y" }} to {{ invoice.end_date|date:"d M Y" }}
+                                {% else %}
+                                    All Dates
+                                {% endif %}
+                            </td>
+                            <td>{{ invoice.generated_at|date:"d M Y, h:i A" }}</td>
+                            <td>
+                                <a href="{{ invoice.invoice_file.url }}" class="btn btn-success btn-sm" download>Download</a>
+                                <a href="{% url 'delete_invoice' invoice.id %}" class="btn btn-danger btn-sm">Delete</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">No reports found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </form>
+            <script>
+                document.getElementById('select-all').onclick = function() {
+                    var checkboxes = document.getElementsByName('invoice_ids');
+                    for (var checkbox of checkboxes) {
+                        checkbox.checked = this.checked;
+                    }
+                }
+            </script>
+        </div>
+    </div>
+</div>
+{% endblock %}

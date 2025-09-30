@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Logged Out - Invoice{% endblock %}
+
+{% block extra_css %}
+<style>
+    .logout-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .logout-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        padding: 3rem;
+        text-align: center;
+        max-width: 500px;
+        width: 100%;
+    }
+    
+    .logout-icon {
+        font-size: 4rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 1.5rem;
+    }
+    
+    .logout-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .logout-message {
+        color: #64748b;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+    
+    .logout-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    @media (max-width: 768px) {
+        .logout-card {
+            padding: 2rem;
+            margin: 1rem;
+        }
+        
+        .logout-title {
+            font-size: 1.5rem;
+        }
+        
+        .logout-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logout-container">
+    <div class="logout-card animate-fade-in-up">
+        <div class="logout-icon">
+            <i class="fas fa-sign-out-alt"></i>
+        </div>
+        
+        <h1 class="logout-title">Successfully Logged Out</h1>
+        
+        <p class="logout-message">
+            Thank you for using Invoice. You have been safely logged out of your account. 
+            Your session has ended and all your data remains secure.
+        </p>
+        
+        <div class="logout-actions">
+            <a href="{% url 'login' %}" class="btn btn-primary-modern btn-lg">
+                <i class="fas fa-sign-in-alt me-2"></i>
+                Sign In Again
+            </a>
+            <a href="{% url 'home' %}" class="btn btn-secondary-modern btn-lg">
+                <i class="fas fa-home me-2"></i>
+                Go Home
+            </a>
+        </div>
+        
+        <div class="mt-4 pt-4 border-top">
+            <small class="text-muted">
+                <i class="fas fa-shield-alt me-1"></i>
+                Your data is protected and secure
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add a subtle animation to the logout card
+    const card = document.querySelector('.logout-card');
+    if (card) {
+        card.style.transform = 'translateY(20px)';
+        card.style.opacity = '0';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.6s ease';
+            card.style.transform = 'translateY(0)';
+            card.style.opacity = '1';
+        }, 100);
+    }
+});
+</script>
+{% endblock %}

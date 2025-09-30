@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+
+{% block title %}User Reports{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">User Reports</h1>
+
+    <!-- Search and Filter Form -->
+    <form method="get" class="row g-3 mb-4">
+        <div class="col-md-6">
+            <input type="text" name="search" class="form-control" placeholder="Search by username..." value="{{ request.GET.search }}">
+        </div>
+        <div class="col-md-4">
+            <select name="role" class="form-select">
+                <option value="">All Roles</option>
+                <option value="admin" {% if request.GET.role == 'admin' %}selected{% endif %}>Admin</option>
+                <option value="user" {% if request.GET.role == 'user' %}selected{% endif %}>User</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Filter</button>
+        </div>
+    </form>
+
+    <div class="row">
+        {% for user in page_obj %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ user.username }}</h5>
+                    <p class="card-text"><strong>Role:</strong> {{ user.get_role_display }}</p>
+                    <p class="card-text"><small class="text-muted">Created by: {{ user.created_by.username|default:"Super Admin" }}</small></p>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userReportModal" data-user-id="{{ user.id }}">
+                        View Details
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p>No users found.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1">&laquo; First</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+            {% endif %}
+
+            <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="userReportModal" tabindex="-1" aria-labelledby="userReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userReportModalLabel">User Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="userInfo"></div>
+                <div class="my-3">
+                    <canvas id="activityChart"></canvas>
+                </div>
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects" type="button" role="tab" aria-controls="projects" aria-selected="true">Projects</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices" type="button" role="tab" aria-controls="invoices" aria-selected="false">Invoices</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="logins-tab" data-bs-toggle="tab" data-bs-target="#logins" type="button" role="tab" aria-controls="logins" aria-selected="false">Login History</button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="projects" role="tabpanel" aria-labelledby="projects-tab"></div>
+                    <div class="tab-pane fade" id="invoices" role="tabpanel" aria-labelledby="invoices-tab"></div>
+                    <div class="tab-pane fade" id="logins" role="tabpanel" aria-labelledby="logins-tab"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="dropdown">
+                    <button class="btn btn-primary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        Export
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                        <li><a class="dropdown-item" href="#" id="exportJson">JSON</a></li>
+                        <li><a class="dropdown-item" href="#" id="exportDocx">DOCX</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const userReportModal = document.getElementById('userReportModal');
+    let activityChart = null;
+
+    if (userReportModal) {
+        userReportModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const userId = button.getAttribute('data-user-id');
+            const modalTitle = userReportModal.querySelector('.modal-title');
+            const userInfo = document.getElementById('userInfo');
+            const projectsTab = document.getElementById('projects');
+            const invoicesTab = document.getElementById('invoices');
+            const loginsTab = document.getElementById('logins');
+            const exportJson = document.getElementById('exportJson');
+            const exportDocx = document.getElementById('exportDocx');
+
+            // Reset content
+            userInfo.innerHTML = '<p>Loading...</p>';
+            projectsTab.innerHTML = '';
+            invoicesTab.innerHTML = '';
+            loginsTab.innerHTML = '';
+            modalTitle.textContent = 'User Report';
+            exportJson.href = '#';
+            exportDocx.href = '#';
+
+            if (!userId) {
+                userInfo.innerHTML = '<p class="text-danger">Could not find user ID.</p>';
+                return;
+            }
+
+            const url = `/get-user-report/${userId}/`;
+            exportJson.href = `/export-user-report/${userId}/json/`;
+            exportDocx.href = `/export-user-report/${userId}/docx/`;
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    modalTitle.textContent = `User Report for ${data.username}`;
+                    userInfo.innerHTML = `
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">User Information</h5>
+                                <p><strong>Role:</strong> ${data.role}</p>
+                                <p><strong>Created By:</strong> ${data.created_by || 'Super Admin'}</p>
+                                <p><strong>Joined:</strong> ${data.date_joined}</p>
+                            </div>
+                        </div>
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Activity Summary</h5>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h6>Work Entries</h6>
+                                            <h4>${data.summary.total_work_entries}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h6>Total Quantity</h6>
+                                            <h4>${data.summary.total_quantity}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h6>Projects Created</h6>
+                                            <h4>${data.summary.projects_created_count}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h6>Projects Managed</h6>
+                                            <h4>${data.summary.projects_managed_count}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Projects
+                    let projectsHtml = `
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <h5>Projects Created</h5>
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Start Date</th>
+                                            <th>End Date</th>
+                                            <th>Managed By</th>
+                                            <th>Categories</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    ${data.projects_created.length > 0 ? 
+                                        data.projects_created.map(p => `
+                                            <tr>
+                                                <td>${p.name}</td>
+                                                <td>${p.start_date}</td>
+                                                <td>${p.end_date}</td>
+                                                <td>${p.managed_by || 'N/A'}</td>
+                                                <td>${p.categories_count}</td>
+                                            </tr>
+                                        `).join('') : 
+                                        '<tr><td colspan="5">No projects created.</td></tr>'
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        ${data.projects_managed.length > 0 ? `
+                            <div class="row">
+                                <div class="col-12">
+                                    <h5>Projects Managed</h5>
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Start Date</th>
+                                                <th>End Date</th>
+                                                <th>Created By</th>
+                                                <th>Categories</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.projects_managed.map(p => `
+                                                <tr>
+                                                    <td>${p.name}</td>
+                                                    <td>${p.start_date}</td>
+                                                    <td>${p.end_date}</td>
+                                                    <td>${p.created_by}</td>
+                                                    <td>${p.categories_count}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5>Project Statistics</h5>
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Project</th>
+                                            <th>Total Entries</th>
+                                            <th>Total Quantity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    ${data.project_statistics.map(stat => `
+                                        <tr>
+                                            <td>${stat.project_name}</td>
+                                            <td>${stat.total_entries}</td>
+                                            <td>${stat.total_quantity}</td>
+                                        </tr>
+                                    `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    projectsTab.innerHTML = projectsHtml;
+
+                    // Invoices (assuming you'll add this to the backend)
+                    invoicesTab.innerHTML = '<p>Invoice data not yet available.</p>';
+
+                    // Work Entries
+                    let entriesHtml = `
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <h5>Recent Work Entries</h5>
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Project</th>
+                                            <th>Category</th>
+                                            <th>Folder</th>
+                                            <th>Quantity</th>
+                                            <th>Rate</th>
+                                            <th>Currency</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    ${data.work_entries.length > 0 ? 
+                                        data.work_entries.map(entry => `
+                                            <tr>
+                                                <td>${entry.date}</td>
+                                                <td>${entry.project}</td>
+                                                <td>${entry.category}</td>
+                                                <td>${entry.folder_name}</td>
+                                                <td>${entry.quantity}</td>
+                                                <td>${entry.rate}</td>
+                                                <td>${entry.currency}</td>
+                                            </tr>
+                                        `).join('') : 
+                                        '<tr><td colspan="7">No work entries found.</td></tr>'
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    invoicesTab.innerHTML = entriesHtml;
+
+                    // Logins
+                    let loginsHtml = `
+                        <div class="row">
+                            <div class="col-12">
+                                <h5>Recent Login History</h5>
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>IP Address</th>
+                                            <th>Browser</th>
+                                            <th>OS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    ${data.login_history.length > 0 ? 
+                                        data.login_history.map(login => `
+                                            <tr>
+                                                <td>${login.datetime}</td>
+                                                <td>${login.ip_address}</td>
+                                                <td>${login.browser}</td>
+                                                <td>${login.os}</td>
+                                            </tr>
+                                        `).join('') : 
+                                        '<tr><td colspan="4">No login history found.</td></tr>'
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    loginsTab.innerHTML = loginsHtml;
+
+                    // Chart
+                    const ctx = document.getElementById('activityChart').getContext('2d');
+                    if (activityChart) {
+                        activityChart.destroy();
+                    }
+                    activityChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Projects Created', 'Work Entries', 'Logins'],
+                            datasets: [{
+                                label: 'Activity Count',
+                                data: [data.projects_created.length, data.work_entries.length, data.login_history.length],
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.2)',
+                                    'rgba(54, 162, 235, 0.2)',
+                                    'rgba(255, 206, 86, 0.2)'
+                                ],
+                                borderColor: [
+                                    'rgba(255, 99, 132, 1)',
+                                    'rgba(54, 162, 235, 1)',
+                                    'rgba(255, 206, 86, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(error => {
+                    userInfo.innerHTML = `<p class="text-danger">Error loading user details: ${error.message}</p>`;
+                });
+        });
+    }
+});
+</script>
+{% endblock %}

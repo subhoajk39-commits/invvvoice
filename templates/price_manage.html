@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}💸 Manage Prices{% endblock %}
+
+{% block content %}
+<h2>💸 Price Management</h2>
+
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Add Price</button>
+</form>
+
+<hr>
+
+<h3>📋 Existing Prices</h3>
+<table border="1" cellpadding="5">
+  <tr>
+    <th>Folder Name</th>
+    <th>Rate</th>
+    <th>Actions</th>
+  </tr>
+  {% for price in prices %}
+  <tr>
+    <td>{{ price.Folder Name }}</td>
+    <td>${{ price.rate }}</td>
+    <td>
+      <a href="{% url 'price_edit' price.id %}">Edit</a> |
+      <a href="{% url 'price_delete' price.id %}">Delete</a>
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="3">No prices available.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

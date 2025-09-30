@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Invoice Reports{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Invoice Reports</h5>
+                    <p class="card-text">View and download generated invoice reports.</p>
+                    <a href="{% url 'invoice_reports' %}" class="btn btn-primary">Go to Invoice Reports</a>
+                </div>
+            </div>
+        </div>
+        {% if request.user.is_superuser or request.user.profile.role == 'admin' %}
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Users Reports</h5>
+                    <p class="card-text">View and download generated user reports.</p>
+                    <a href="{% url 'user_reports' %}" class="btn btn-primary">Go to User Reports</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

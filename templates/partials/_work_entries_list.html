@@ -1,0 +1,26 @@
+{% if entries %}
+    {% regroup entries by date as entries_by_date %}
+    {% for group in entries_by_date %}
+        <div class="date-group">
+            <div class="date-header"><i class="fas fa-calendar me-2"></i>{{ group.grouper|date:"l, F d, Y" }}</div>
+            {% for entry in group.list %}
+                <div class="entry-item">
+                    <div>
+                        <div class="entry-project">{% if entry.project %}{{ entry.project.name }}{% else %}No Project{% endif %}</div>
+                        <div class="entry-folder">{{ entry.folder_name|default:"No folder name" }}</div>
+                    </div>
+                    <div>{% if entry.category %}<span class="entry-category">{{ entry.category.name }}</span>{% else %}<span class="text-muted">No category</span>{% endif %}</div>
+                    <div class="entry-quantity">{{ entry.quantity|default:0 }}</div>
+                    <div><i class="fas fa-check-circle text-success"></i></div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <h4>No entries found</h4>
+        <p>{% if query or start_date or end_date %}No work entries match your current filters.{% else %}You haven't submitted any work entries yet.{% endif %}</p>
+        <a href="{% url 'submit_work' %}" class="btn btn-primary-modern mt-3"><i class="fas fa-plus me-2"></i>Add Your First Entry</a>
+    </div>
+{% endif %}

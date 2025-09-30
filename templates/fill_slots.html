@@ -1,0 +1,9 @@
+<form method="post">
+  {% csrf_token %}
+  {% for slot in slots %}
+    <input type="text" name="category_{{ slot.id }}" placeholder="Folder Name">
+    <input type="number" name="quantity_{{ slot.id }}" placeholder="Quantity">
+    <br><br>
+  {% endfor %}
+  <button type="submit">Submit</button>
+</form>
