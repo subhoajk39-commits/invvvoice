@@ -96,12 +96,22 @@
                         <button class="nav-link" id="logins-tab" data-bs-toggle="tab" data-bs-target="#logins" type="button" role="tab" aria-controls="logins" aria-selected="false">Login History</button>
                     </li>
                 </ul>
-                <div class="tab-content" id="myTabContent">
-                    <div class="tab-pane fade show active" id="projects" role="tabpanel" aria-labelledby="projects-tab"></div>
-                    <div class="tab-pane fade" id="categories" role="tabpanel" aria-labelledby="categories-tab"></div>
-                    <div class="tab-pane fade" id="users" role="tabpanel" aria-labelledby="users-tab"></div>
-                    <div class="tab-pane fade" id="workentries" role="tabpanel" aria-labelledby="workentries-tab"></div>
-                    <div class="tab-pane fade" id="logins" role="tabpanel" aria-labelledby="logins-tab"></div>
+                <div class="tab-content mt-3" id="myTabContent">
+                    <div class="tab-pane fade show active p-3" id="projects" role="tabpanel" aria-labelledby="projects-tab">
+                        <p class="text-muted">Loading...</p>
+                    </div>
+                    <div class="tab-pane fade p-3" id="categories" role="tabpanel" aria-labelledby="categories-tab">
+                        <p class="text-muted">Loading...</p>
+                    </div>
+                    <div class="tab-pane fade p-3" id="users" role="tabpanel" aria-labelledby="users-tab">
+                        <p class="text-muted">Loading...</p>
+                    </div>
+                    <div class="tab-pane fade p-3" id="workentries" role="tabpanel" aria-labelledby="workentries-tab">
+                        <p class="text-muted">Loading...</p>
+                    </div>
+                    <div class="tab-pane fade p-3" id="logins" role="tabpanel" aria-labelledby="logins-tab">
+                        <p class="text-muted">Loading...</p>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -162,14 +172,22 @@ document.addEventListener('DOMContentLoaded', function () {
             exportJson.href = `/export-user-report/${userId}/json/`;
             exportDocx.href = `/export-user-report/${userId}/docx/`;
 
+            console.log('Fetching user report from:', url);
+
             fetch(url)
                 .then(response => {
+                    console.log('Response status:', response.status);
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
+                    console.log('Received data:', data);
+                    console.log('Summary:', data.summary);
+                    console.log('Work entries count:', data.work_entries ? data.work_entries.length : 0);
+                    console.log('Projects created count:', data.projects_created ? data.projects_created.length : 0);
+
                     modalTitle.textContent = `User Report for ${data.username}`;
                     userInfo.innerHTML = `
                         <div class="card mb-3">
@@ -313,29 +331,31 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
                         ` : ''}
                         
-                        <div class="row mt-4">
-                            <div class="col-12">
-                                <h5>Project Statistics</h5>
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Project</th>
-                                            <th>Total Entries</th>
-                                            <th>Total Quantity</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    ${data.project_statistics.map(stat => `
-                                        <tr>
-                                            <td>${stat.project_name}</td>
-                                            <td>${stat.total_entries}</td>
-                                            <td>${stat.total_quantity}</td>
-                                        </tr>
-                                    `).join('')}
-                                    </tbody>
-                                </table>
+                        ${data.project_statistics && data.project_statistics.length > 0 ? `
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h5>Project Statistics</h5>
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Project</th>
+                                                <th>Total Entries</th>
+                                                <th>Total Quantity</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        ${data.project_statistics.map(stat => `
+                                            <tr>
+                                                <td>${stat.project_name}</td>
+                                                <td>${stat.total_entries}</td>
+                                                <td>${stat.total_quantity}</td>
+                                            </tr>
+                                        `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
+                        ` : ''}
                     `;
                     projectsTab.innerHTML = projectsHtml;
 
@@ -547,7 +567,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                 })
                 .catch(error => {
-                    userInfo.innerHTML = `<p class="text-danger">Error loading user details: ${error.message}</p>`;
+                    console.error('Error fetching user report:', error);
+                    userInfo.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            <h5>Error Loading User Details</h5>
+                            <p>${error.message}</p>
+                            <p>Please check the browser console for more details.</p>
+                        </div>
+                    `;
+                    projectsTab.innerHTML = '<p class="text-danger">Failed to load data</p>';
+                    categoriesTab.innerHTML = '<p class="text-danger">Failed to load data</p>';
+                    usersTab.innerHTML = '<p class="text-danger">Failed to load data</p>';
+                    workentriesTab.innerHTML = '<p class="text-danger">Failed to load data</p>';
+                    loginsTab.innerHTML = '<p class="text-danger">Failed to load data</p>';
                 });
         });
     }

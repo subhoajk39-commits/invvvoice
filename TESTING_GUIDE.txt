@@ -1,0 +1,99 @@
+USER REPORTS - TESTING & TROUBLESHOOTING GUIDE
+================================================
+
+SCENARIO SETUP:
+--------------
+1. Super Admin exists in the system
+2. Super Admin creates an Admin user named "robin"
+3. Admin "robin" logs in and creates:
+   - Project: "android"
+   - Categories/Prices: "logo", "cpu" with rates
+4. Admin "robin" creates a regular User named "ajoy"
+5. User "ajoy" submits work entries under the "android" project
+
+EXPECTED BEHAVIOR:
+------------------
+
+When Super Admin views "robin" (Admin) report:
+✓ Login History: All login sessions by robin
+✓ Projects Created: "android" project
+✓ Projects Managed: "android" project
+✓ Categories/Prices: "logo", "cpu" with rates
+✓ Users Created: "ajoy" with stats
+✓ Work Entries: None (admins don't submit work)
+✓ Time Stats: Shows 0 entries (no work submissions)
+
+When Super Admin views "ajoy" (User) report:
+✓ Login History: All login sessions by ajoy
+✓ Projects Created: None (users don't create projects)
+✓ Categories/Prices: Not shown (users don't create prices)
+✓ Users Created: Not shown (users don't create users)
+✓ Work Entries: All work submitted by ajoy
+✓ Project Statistics: Breakdown by project
+✓ Time Stats: Today/Month/Year submissions
+✓ Monthly Chart: Visual breakdown of submissions
+
+TROUBLESHOOTING STEPS:
+---------------------
+
+If Modal Shows Empty:
+1. Open browser DevTools (F12)
+2. Go to Console tab
+3. Click "View Report" button
+4. Check console for:
+   - "Fetching user report from: /get-user-report/{id}/"
+   - "Response status: 200"
+   - "Received data: {object}"
+
+If Status is 403:
+- Permission issue - check if logged in as admin/super_admin
+
+If Status is 500:
+- Server error - check Django console/logs for Python errors
+
+If Data Shows But Tabs Are Empty:
+- Check console for JavaScript errors
+- Verify data object structure in console logs
+- Ensure tabs have padding (should be visible now)
+
+RECENT FIXES APPLIED:
+--------------------
+✓ Added padding (p-3) to all tab panes for visibility
+✓ Added mt-3 margin to tab-content for spacing
+✓ Added console.log statements for debugging
+✓ Added better error handling and display
+✓ Made project_statistics conditional (only show if data exists)
+✓ Enhanced error messages in catch block
+
+HOW TO TEST:
+-----------
+1. Login as Super Admin
+2. Go to: http://localhost:8000/user-reports/
+3. Click "View Report" on "robin" card
+4. Modal should open with data in tabs
+5. Check all 5 tabs: Projects, Categories/Prices, Users Created, Work Entries, Login History
+6. Close modal
+7. Click "View Report" on "ajoy" card
+8. Modal should show user's work entries in Work Entries tab
+9. Other tabs should show "No data" messages
+
+WHAT TO CHECK IN BROWSER CONSOLE:
+---------------------------------
+```
+Fetching user report from: /get-user-report/xxxx-xxxx-xxxx/
+Response status: 200
+Received data: { username: "ajoy", role: "User", ... }
+Summary: { total_work_entries: 5, total_quantity: 10, ... }
+Work entries count: 5
+Projects created count: 0
+```
+
+If you see the above, data is loading correctly!
+
+IMPORTANT NOTES:
+----------------
+- Regular users won't have Projects/Categories/Users tabs data
+- Admins won't have Work Entries (they manage, not submit)
+- Chart shows monthly breakdown for current year only
+- Last 50 logins, 100 categories, 200 work entries shown
+- All times are shown in local timezone
