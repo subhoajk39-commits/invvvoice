@@ -4,7 +4,12 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="mb-4">User Reports</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>User Activity Reports</h1>
+        {% if request.user.role == 'super_admin' %}
+            <span class="badge bg-primary">Super Admin View</span>
+        {% endif %}
+    </div>
 
     <!-- Search and Filter Form -->
     <form method="get" class="row g-3 mb-4">
@@ -31,8 +36,9 @@
                     <h5 class="card-title">{{ user.username }}</h5>
                     <p class="card-text"><strong>Role:</strong> {{ user.get_role_display }}</p>
                     <p class="card-text"><small class="text-muted">Created by: {{ user.created_by.username|default:"Super Admin" }}</small></p>
+                    <p class="card-text"><small class="text-muted">Joined: {{ user.date_joined|date:"Y-m-d" }}</small></p>
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userReportModal" data-user-id="{{ user.id }}">
-                        View Details
+                        View Report
                     </button>
                 </div>
             </div>
@@ -78,7 +84,13 @@
                         <button class="nav-link active" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects" type="button" role="tab" aria-controls="projects" aria-selected="true">Projects</button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices" type="button" role="tab" aria-controls="invoices" aria-selected="false">Invoices</button>
+                        <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories" type="button" role="tab" aria-controls="categories" aria-selected="false">Categories/Prices</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="false">Users Created</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="workentries-tab" data-bs-toggle="tab" data-bs-target="#workentries" type="button" role="tab" aria-controls="workentries" aria-selected="false">Work Entries</button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="logins-tab" data-bs-toggle="tab" data-bs-target="#logins" type="button" role="tab" aria-controls="logins" aria-selected="false">Login History</button>
@@ -86,7 +98,9 @@
                 </ul>
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active" id="projects" role="tabpanel" aria-labelledby="projects-tab"></div>
-                    <div class="tab-pane fade" id="invoices" role="tabpanel" aria-labelledby="invoices-tab"></div>
+                    <div class="tab-pane fade" id="categories" role="tabpanel" aria-labelledby="categories-tab"></div>
+                    <div class="tab-pane fade" id="users" role="tabpanel" aria-labelledby="users-tab"></div>
+                    <div class="tab-pane fade" id="workentries" role="tabpanel" aria-labelledby="workentries-tab"></div>
                     <div class="tab-pane fade" id="logins" role="tabpanel" aria-labelledby="logins-tab"></div>
                 </div>
             </div>
@@ -121,7 +135,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const modalTitle = userReportModal.querySelector('.modal-title');
             const userInfo = document.getElementById('userInfo');
             const projectsTab = document.getElementById('projects');
-            const invoicesTab = document.getElementById('invoices');
+            const categoriesTab = document.getElementById('categories');
+            const usersTab = document.getElementById('users');
+            const workentriesTab = document.getElementById('workentries');
             const loginsTab = document.getElementById('logins');
             const exportJson = document.getElementById('exportJson');
             const exportDocx = document.getElementById('exportDocx');
@@ -129,7 +145,9 @@ document.addEventListener('DOMContentLoaded', function () {
             // Reset content
             userInfo.innerHTML = '<p>Loading...</p>';
             projectsTab.innerHTML = '';
-            invoicesTab.innerHTML = '';
+            categoriesTab.innerHTML = '';
+            usersTab.innerHTML = '';
+            workentriesTab.innerHTML = '';
             loginsTab.innerHTML = '';
             modalTitle.textContent = 'User Report';
             exportJson.href = '#';
@@ -160,34 +178,72 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <p><strong>Role:</strong> ${data.role}</p>
                                 <p><strong>Created By:</strong> ${data.created_by || 'Super Admin'}</p>
                                 <p><strong>Joined:</strong> ${data.date_joined}</p>
+                                <p><strong>Total Logins:</strong> ${data.summary.total_logins}</p>
                             </div>
                         </div>
                         <div class="card mb-3">
                             <div class="card-body">
                                 <h5 class="card-title">Activity Summary</h5>
                                 <div class="row">
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <div class="text-center">
-                                            <h6>Work Entries</h6>
+                                            <h6>Total Work Entries</h6>
                                             <h4>${data.summary.total_work_entries}</h4>
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <div class="text-center">
                                             <h6>Total Quantity</h6>
                                             <h4>${data.summary.total_quantity}</h4>
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <div class="text-center">
                                             <h6>Projects Created</h6>
                                             <h4>${data.summary.projects_created_count}</h4>
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <div class="text-center">
                                             <h6>Projects Managed</h6>
                                             <h4>${data.summary.projects_managed_count}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center">
+                                            <h6>Categories Created</h6>
+                                            <h4>${data.summary.categories_created_count}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center">
+                                            <h6>Users Created</h6>
+                                            <h4>${data.summary.users_created_count}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Time-Based Statistics</h5>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <h6>Today</h6>
+                                            <p><strong>Entries:</strong> ${data.summary.today_entries} | <strong>Qty:</strong> ${data.summary.today_quantity}</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <h6>This Month</h6>
+                                            <p><strong>Entries:</strong> ${data.summary.month_entries} | <strong>Qty:</strong> ${data.summary.month_quantity}</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <h6>This Year</h6>
+                                            <p><strong>Entries:</strong> ${data.summary.year_entries} | <strong>Qty:</strong> ${data.summary.year_quantity}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -283,8 +339,73 @@ document.addEventListener('DOMContentLoaded', function () {
                     `;
                     projectsTab.innerHTML = projectsHtml;
 
-                    // Invoices (assuming you'll add this to the backend)
-                    invoicesTab.innerHTML = '<p>Invoice data not yet available.</p>';
+                    // Categories/Prices Created
+                    let categoriesHtml = `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h5>Categories/Prices Created</h5>
+                                ${data.categories_created && data.categories_created.length > 0 ? `
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Category Name</th>
+                                                <th>Project</th>
+                                                <th>Rate</th>
+                                                <th>Currency</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        ${data.categories_created.map(cat => `
+                                            <tr>
+                                                <td>${cat.name}</td>
+                                                <td>${cat.project}</td>
+                                                <td>${cat.rate}</td>
+                                                <td>${cat.currency}</td>
+                                            </tr>
+                                        `).join('')}
+                                        </tbody>
+                                    </table>
+                                ` : '<p>No categories/prices created.</p>'}
+                            </div>
+                        </div>
+                    `;
+                    categoriesTab.innerHTML = categoriesHtml;
+
+                    // Users Created
+                    let usersCreatedHtml = `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h5>Users Created</h5>
+                                ${data.users_created && data.users_created.length > 0 ? `
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Username</th>
+                                                <th>Email</th>
+                                                <th>Role</th>
+                                                <th>Joined</th>
+                                                <th>Last Login</th>
+                                                <th>Work Entries</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        ${data.users_created.map(u => `
+                                            <tr>
+                                                <td>${u.username}</td>
+                                                <td>${u.email}</td>
+                                                <td>${u.role}</td>
+                                                <td>${u.date_joined}</td>
+                                                <td>${u.last_login}</td>
+                                                <td>${u.work_entries_count}</td>
+                                            </tr>
+                                        `).join('')}
+                                        </tbody>
+                                    </table>
+                                ` : '<p>No users created.</p>'}
+                            </div>
+                        </div>
+                    `;
+                    usersTab.innerHTML = usersCreatedHtml;
 
                     // Work Entries
                     let entriesHtml = `
@@ -300,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                             <th>Folder</th>
                                             <th>Quantity</th>
                                             <th>Rate</th>
-                                            <th>Currency</th>
+                                            <th>Total</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -312,18 +433,18 @@ document.addEventListener('DOMContentLoaded', function () {
                                                 <td>${entry.category}</td>
                                                 <td>${entry.folder_name}</td>
                                                 <td>${entry.quantity}</td>
-                                                <td>${entry.rate}</td>
-                                                <td>${entry.currency}</td>
+                                                <td>${entry.currency} ${entry.rate}</td>
+                                                <td>${entry.currency} ${(entry.quantity * entry.rate).toFixed(2)}</td>
                                             </tr>
                                         `).join('') : 
-                                        '<tr><td colspan="7">No work entries found.</td></tr>'
+                                        '<tr><td colspan="6">No work entries found.</td></tr>'
                                     }
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     `;
-                    invoicesTab.innerHTML = entriesHtml;
+                    workentriesTab.innerHTML = entriesHtml;
 
                     // Logins
                     let loginsHtml = `
@@ -358,35 +479,68 @@ document.addEventListener('DOMContentLoaded', function () {
                     `;
                     loginsTab.innerHTML = loginsHtml;
 
-                    // Chart
+                    // Chart - Monthly Breakdown
                     const ctx = document.getElementById('activityChart').getContext('2d');
                     if (activityChart) {
                         activityChart.destroy();
                     }
+
+                    const monthlyLabels = data.monthly_breakdown.map(m => m.month);
+                    const monthlyEntriesCounts = data.monthly_breakdown.map(m => m.entries_count);
+                    const monthlyQuantities = data.monthly_breakdown.map(m => m.total_quantity);
+
                     activityChart = new Chart(ctx, {
                         type: 'bar',
                         data: {
-                            labels: ['Projects Created', 'Work Entries', 'Logins'],
-                            datasets: [{
-                                label: 'Activity Count',
-                                data: [data.projects_created.length, data.work_entries.length, data.login_history.length],
-                                backgroundColor: [
-                                    'rgba(255, 99, 132, 0.2)',
-                                    'rgba(54, 162, 235, 0.2)',
-                                    'rgba(255, 206, 86, 0.2)'
-                                ],
-                                borderColor: [
-                                    'rgba(255, 99, 132, 1)',
-                                    'rgba(54, 162, 235, 1)',
-                                    'rgba(255, 206, 86, 1)'
-                                ],
-                                borderWidth: 1
-                            }]
+                            labels: monthlyLabels.length > 0 ? monthlyLabels : ['No Data'],
+                            datasets: [
+                                {
+                                    label: 'Work Entries Count',
+                                    data: monthlyEntriesCounts.length > 0 ? monthlyEntriesCounts : [0],
+                                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                    borderWidth: 1,
+                                    yAxisID: 'y'
+                                },
+                                {
+                                    label: 'Total Quantity',
+                                    data: monthlyQuantities.length > 0 ? monthlyQuantities : [0],
+                                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                                    borderColor: 'rgba(255, 99, 132, 1)',
+                                    borderWidth: 1,
+                                    yAxisID: 'y1'
+                                }
+                            ]
                         },
                         options: {
+                            responsive: true,
+                            interaction: {
+                                mode: 'index',
+                                intersect: false,
+                            },
                             scales: {
                                 y: {
-                                    beginAtZero: true
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'left',
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Work Entries'
+                                    }
+                                },
+                                y1: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'right',
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Quantity'
+                                    },
+                                    grid: {
+                                        drawOnChartArea: false,
+                                    }
                                 }
                             }
                         }

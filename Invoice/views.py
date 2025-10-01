@@ -1276,43 +1276,50 @@ def get_user_report_view(request, user_id):
     try:
         print(f"[DEBUG] get_user_report_view called for user_id: {user_id}")
         print(f"[DEBUG] Requesting user role: {request.user.role}")
-        
+
         if request.user.role not in ['admin', 'super_admin']:
             print("[DEBUG] Authorization failed - invalid role")
             return JsonResponse({'error': 'Unauthorized - Invalid role'}, status=403)
 
         user = get_object_or_404(User, id=user_id)
         print(f"[DEBUG] Found user: {user.username}")
-        
+
         # Check permissions
         if request.user.role == 'admin' and user.created_by != request.user:
             print("[DEBUG] Authorization failed - admin permission check")
             return JsonResponse({'error': 'Unauthorized - Invalid permissions'}, status=403)
 
+        from datetime import timedelta
+        from collections import defaultdict
+
         # Get user's login history
         login_history = UserLoginHistory.objects.filter(user=user).order_by('-login_datetime')
         print(f"[DEBUG] Found {login_history.count()} login history records")
-        
+
         # Get projects created by user
         projects_created = ClientProject.objects.filter(created_by=user).order_by('-start_date')
         print(f"[DEBUG] Found {projects_created.count()} projects created")
-        
+
         # Get projects managed by user (if admin)
         projects_managed = ClientProject.objects.filter(managed_by=user).order_by('-start_date')
         print(f"[DEBUG] Found {projects_managed.count()} projects managed")
-        
+
+        # Get categories/prices created by user (if admin)
+        categories_created = Category.objects.filter(managed_by=user).select_related('project').order_by('-id')
+        print(f"[DEBUG] Found {categories_created.count()} categories/prices created")
+
         # Get work entries with related data
         work_entries = WorkEntry.objects.filter(user=user).select_related(
             'project', 'category'
         ).order_by('-date')
         print(f"[DEBUG] Found {work_entries.count()} work entries")
-        
+
         # Get work entries statistics
         work_stats = WorkEntry.objects.filter(user=user).aggregate(
-            total_entries=models.Count('id'),
-            total_quantity=models.Sum('quantity')
+            total_entries=Count('id'),
+            total_quantity=Sum('quantity')
         )
-        
+
         # Get project statistics
         project_stats = {}
         for entry in work_entries:
@@ -1325,20 +1332,66 @@ def get_user_report_view(request, user_id):
             project_stats[entry.project.id]['total_entries'] += 1
             project_stats[entry.project.id]['total_quantity'] += entry.quantity
 
+        # Daily, Monthly, Yearly work entry statistics
+        now = timezone.now()
+        today = now.date()
+
+        # Today's entries
+        today_entries = work_entries.filter(date__date=today)
+        today_stats = today_entries.aggregate(
+            count=Count('id'),
+            quantity=Sum('quantity')
+        )
+
+        # This month's entries
+        month_entries = work_entries.filter(date__year=now.year, date__month=now.month)
+        month_stats = month_entries.aggregate(
+            count=Count('id'),
+            quantity=Sum('quantity')
+        )
+
+        # This year's entries
+        year_entries = work_entries.filter(date__year=now.year)
+        year_stats = year_entries.aggregate(
+            count=Count('id'),
+            quantity=Sum('quantity')
+        )
+
+        # Monthly breakdown for current year
+        monthly_breakdown = defaultdict(lambda: {'count': 0, 'quantity': 0})
+        for entry in year_entries:
+            month_key = entry.date.strftime('%Y-%m')
+            monthly_breakdown[month_key]['count'] += 1
+            monthly_breakdown[month_key]['quantity'] += entry.quantity
+
+        # Get users created by this admin (if admin/super_admin)
+        users_created = User.objects.filter(created_by=user).order_by('-date_joined') if user.role in ['admin', 'super_admin'] else User.objects.none()
+
         data = {
             'username': user.username,
             'role': user.get_role_display(),
             'created_by': user.created_by.username if user.created_by else None,
             'date_joined': user.date_joined.strftime('%Y-%m-%d'),
-            
+
             # User summary
             'summary': {
                 'total_work_entries': work_stats['total_entries'] or 0,
                 'total_quantity': work_stats['total_quantity'] or 0,
                 'projects_created_count': projects_created.count(),
                 'projects_managed_count': projects_managed.count() if user.role in ['admin', 'super_admin'] else 0,
+                'categories_created_count': categories_created.count() if user.role in ['admin', 'super_admin'] else 0,
+                'users_created_count': users_created.count() if user.role in ['admin', 'super_admin'] else 0,
+                'total_logins': login_history.count(),
+
+                # Time-based statistics
+                'today_entries': today_stats['count'] or 0,
+                'today_quantity': today_stats['quantity'] or 0,
+                'month_entries': month_stats['count'] or 0,
+                'month_quantity': month_stats['quantity'] or 0,
+                'year_entries': year_stats['count'] or 0,
+                'year_quantity': year_stats['quantity'] or 0,
             },
-            
+
             # Login history
             'login_history': [
                 {
@@ -1347,20 +1400,21 @@ def get_user_report_view(request, user_id):
                     'device': f"{lh.os} on {lh.browser}",
                     'browser': lh.browser,
                     'os': lh.os
-                } for lh in login_history
+                } for lh in login_history[:50]  # Last 50 logins
             ],
-            
-            # Projects created by user
+
+            # Projects created by user (for admins)
             'projects_created': [
                 {
                     'name': p.name,
                     'start_date': p.start_date.strftime('%Y-%m-%d'),
                     'end_date': p.end_date.strftime('%Y-%m-%d') if p.end_date else 'Ongoing',
                     'managed_by': p.managed_by.username if p.managed_by else None,
-                    'categories_count': p.categories.count()
+                    'categories_count': p.categories.count(),
+                    'work_entries_count': p.work_entries.count()
                 } for p in projects_created
             ],
-            
+
             # Projects managed (if admin)
             'projects_managed': [
                 {
@@ -1368,23 +1422,46 @@ def get_user_report_view(request, user_id):
                     'start_date': p.start_date.strftime('%Y-%m-%d'),
                     'end_date': p.end_date.strftime('%Y-%m-%d') if p.end_date else 'Ongoing',
                     'created_by': p.created_by.username,
-                    'categories_count': p.categories.count()
+                    'categories_count': p.categories.count(),
+                    'work_entries_count': p.work_entries.count()
                 } for p in projects_managed
             ] if user.role in ['admin', 'super_admin'] else [],
-            
+
+            # Categories/Prices created by admin
+            'categories_created': [
+                {
+                    'name': cat.name,
+                    'project': cat.project.name,
+                    'rate': float(cat.rate),
+                    'currency': cat.currency,
+                } for cat in categories_created[:100]  # Last 100 categories
+            ] if user.role in ['admin', 'super_admin'] else [],
+
+            # Users created by admin
+            'users_created': [
+                {
+                    'username': u.username,
+                    'email': u.email,
+                    'role': u.get_role_display(),
+                    'date_joined': u.date_joined.strftime('%Y-%m-%d'),
+                    'last_login': timezone.localtime(u.last_login).strftime('%Y-%m-%d %H:%M:%S') if u.last_login else 'Never',
+                    'work_entries_count': WorkEntry.objects.filter(user=u).count()
+                } for u in users_created
+            ] if user.role in ['admin', 'super_admin'] else [],
+
             # Work entries
             'work_entries': [
                 {
-                    'date': we.date.strftime('%Y-%m-%d %H:%M'),
+                    'date': timezone.localtime(we.date).strftime('%Y-%m-%d %H:%M'),
                     'project': we.project.name,
                     'category': we.category.name if we.category else 'N/A',
                     'folder_name': we.folder_name,
                     'quantity': we.quantity,
                     'rate': float(we.category.rate) if we.category else 0,
                     'currency': we.category.currency if we.category else 'USD'
-                } for we in work_entries
+                } for we in work_entries[:200]  # Last 200 entries
             ],
-            
+
             # Project-wise statistics
             'project_statistics': [
                 {
@@ -1392,13 +1469,24 @@ def get_user_report_view(request, user_id):
                     'total_entries': stats['total_entries'],
                     'total_quantity': stats['total_quantity']
                 } for project_id, stats in project_stats.items()
+            ],
+
+            # Monthly breakdown for charts
+            'monthly_breakdown': [
+                {
+                    'month': month,
+                    'entries_count': data['count'],
+                    'total_quantity': data['quantity']
+                } for month, data in sorted(monthly_breakdown.items())
             ]
         }
         print(f"[DEBUG] Successfully prepared data for user {user.username}")
         return JsonResponse(data)
-        
+
     except Exception as e:
         print(f"[DEBUG] Error occurred: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
